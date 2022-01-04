@@ -18,14 +18,25 @@
 
   <DockPanel>
 
-    <Panel Height="40"
-           DockPanel.Dock="Top" />
+    <DockPanel Height="40" LastChildFill="False" DockPanel.Dock="Top">
+      <Label Content="Orientation:" />
+      <ComboBox Name="Orientation" SelectedItem="{Binding Orientation}" VerticalAlignment="Top" DockPanel.Dock="Left">
+        <Orientation>Horizontal</Orientation>
+        <Orientation>Vertical</Orientation>
+      </ComboBox>
+      <Label Content="Spacing:" />
+      <TextBox Name="Spacing" Text="{Binding Spacing}" VerticalAlignment="Top" />
+      <Label Content="ItemSize:" />
+      <TextBox Name="ItemSize" Text="{Binding ItemSize}" VerticalAlignment="Top" />
+    </DockPanel>
 
     <ScrollViewer HorizontalScrollBarVisibility="Auto" 
                   VerticalScrollBarVisibility="Auto">
       <ItemsRepeater Items="{Binding Items}">
         <ItemsRepeater.Layout>
-          <layouts:VirtualizingStackLayout Orientation="Vertical" Spacing="1" ItemSize="37" />
+          <layouts:VirtualizingStackLayout Orientation="{Binding Orientation}" 
+                                           Spacing="{Binding Spacing}" 
+                                           ItemSize="{Binding ItemSize}" />
           <!-- <StackLayout Orientation="Vertical" Spacing="1" /> -->
         </ItemsRepeater.Layout>
         <ItemsRepeater.ItemTemplate>
