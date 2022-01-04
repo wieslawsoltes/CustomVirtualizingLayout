@@ -144,7 +144,9 @@ public class VirtualizingStackLayout : VirtualizingLayout
         foreach (var rect in state.RealizedRectangles)
         {
             var element = context.GetOrCreateElementAt(currentIndex);
-            element.Arrange(state.IsInfinity ? rect.WithWidth(desiredItemSize) : rect);
+            element.Arrange(state.IsInfinity 
+                ? isVertical ? rect.WithWidth(desiredItemSize) : rect.WithHeight(desiredItemSize)
+                : rect);
             currentIndex++;
         }
 
