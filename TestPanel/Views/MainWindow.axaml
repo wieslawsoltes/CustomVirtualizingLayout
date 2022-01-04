@@ -26,9 +26,7 @@
       <ItemsRepeater Items="{Binding Items}"
                      Width="500">
         <ItemsRepeater.Layout>
-          <layouts:CustomVirtualizingLayout RowSpacing="10"
-                                            ColumnSpacing="10"
-                                            MinimumItemSize="80 100" />
+          <layouts:CustomVirtualizingLayout Orientation="Vertical" Spacing="10" ItemSize="80" />
         </ItemsRepeater.Layout>
         <ItemsRepeater.ItemTemplate>
           <DataTemplate DataType="x:String">
