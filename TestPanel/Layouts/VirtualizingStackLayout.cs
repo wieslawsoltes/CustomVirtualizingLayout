@@ -5,23 +5,23 @@ using Avalonia.Layout;
 
 namespace TestPanel.Layouts
 {
-    public class CustomVirtualizingLayoutState
+    public class VirtualizingStackLayout : VirtualizingLayout
     {
-        public int FirstRealizedIndex { get; set; }
+        private class VirtualizingStackLayoutState
+        {
+            public int FirstRealizedIndex { get; set; }
 
-        public List<Rect> RealizedRectangles { get; } = new();
-    }
+            public List<Rect> RealizedRectangles { get; } = new();
+        }
 
-    public class CustomVirtualizingLayout : VirtualizingLayout
-    {
         public static readonly StyledProperty<double> SpacingProperty =
-            AvaloniaProperty.Register<CustomVirtualizingLayout, double>(nameof(Spacing));
+            AvaloniaProperty.Register<VirtualizingStackLayout, double>(nameof(Spacing));
 
         public static readonly StyledProperty<Orientation> OrientationProperty =
-            AvaloniaProperty.Register<CustomVirtualizingLayout, Orientation>(nameof(Orientation), Orientation.Vertical);
+            AvaloniaProperty.Register<VirtualizingStackLayout, Orientation>(nameof(Orientation), Orientation.Vertical);
         
         public static readonly StyledProperty<double> ItemSizeProperty =
-            AvaloniaProperty.Register<CustomVirtualizingLayout, double>(nameof(ItemSize), double.NaN);
+            AvaloniaProperty.Register<VirtualizingStackLayout, double>(nameof(ItemSize), double.NaN);
 
         public double Spacing
         {
@@ -57,9 +57,9 @@ namespace TestPanel.Layouts
         {
             base.InitializeForContextCore(context);
 
-            if (context.LayoutState is not CustomVirtualizingLayoutState)
+            if (context.LayoutState is not VirtualizingStackLayoutState)
             {
-                context.LayoutState = new CustomVirtualizingLayoutState();
+                context.LayoutState = new VirtualizingStackLayoutState();
             }
         }
 
@@ -72,7 +72,7 @@ namespace TestPanel.Layouts
 
         protected override Size MeasureOverride(VirtualizingLayoutContext context, Size availableSize)
         {
-            var state = (CustomVirtualizingLayoutState)context.LayoutState!;
+            var state = (VirtualizingStackLayoutState)context.LayoutState!;
             var itemSize = ItemSize;
             var isVertical = Orientation == Orientation.Vertical;
 
@@ -121,7 +121,7 @@ namespace TestPanel.Layouts
 
         protected override Size ArrangeOverride(VirtualizingLayoutContext context, Size finalSize)
         {
-            var state = (CustomVirtualizingLayoutState)context.LayoutState!;
+            var state = (VirtualizingStackLayoutState)context.LayoutState!;
             var currentIndex = state.FirstRealizedIndex;
 
             foreach (var rect in state.RealizedRectangles)
