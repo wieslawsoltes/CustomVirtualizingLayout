@@ -26,6 +26,7 @@
       <ItemsRepeater Items="{Binding Items}">
         <ItemsRepeater.Layout>
           <layouts:VirtualizingStackLayout Orientation="Vertical" Spacing="1" ItemSize="37" />
+          <!-- <StackLayout Orientation="Vertical" Spacing="1" /> -->
         </ItemsRepeater.Layout>
         <ItemsRepeater.ItemTemplate>
           <DataTemplate DataType="x:String">
