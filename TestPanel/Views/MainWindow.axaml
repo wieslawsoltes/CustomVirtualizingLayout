@@ -23,8 +23,7 @@
 
     <ScrollViewer HorizontalScrollBarVisibility="Auto" 
                   VerticalScrollBarVisibility="Auto">
-      <ItemsRepeater Items="{Binding Items}"
-                     Width="500">
+      <ItemsRepeater Items="{Binding Items}">
         <ItemsRepeater.Layout>
           <layouts:VirtualizingStackLayout Orientation="Vertical" Spacing="1" ItemSize="37" />
         </ItemsRepeater.Layout>
