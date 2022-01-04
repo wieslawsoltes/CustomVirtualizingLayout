@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Layout;
 
@@ -79,8 +78,6 @@ public class VirtualizingStackLayout : VirtualizingLayout
         var itemSize = ItemSize;
         var isVertical = Orientation == Orientation.Vertical;
         var desiredItemSize = isVertical ? availableSize.Width : availableSize.Height;
-
-        Debug.WriteLine($"availableSize='{availableSize}'");
 
         if (double.IsNaN(itemSize))
         {
