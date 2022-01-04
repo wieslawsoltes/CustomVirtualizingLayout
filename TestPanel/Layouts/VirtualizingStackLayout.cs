@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Layout;
 
@@ -12,6 +13,8 @@ public class VirtualizingStackLayout : VirtualizingLayout
         public int FirstRealizedIndex { get; set; }
 
         public List<Rect> RealizedRectangles { get; } = new();
+        
+        public bool IsInfinity { get; set; }
     }
 
     public static readonly StyledProperty<double> SpacingProperty =
@@ -75,6 +78,9 @@ public class VirtualizingStackLayout : VirtualizingLayout
         var state = (VirtualizingStackLayoutState)context.LayoutState!;
         var itemSize = ItemSize;
         var isVertical = Orientation == Orientation.Vertical;
+        var desiredItemSize = isVertical ? availableSize.Width : availableSize.Height;
+
+        Debug.WriteLine($"availableSize='{availableSize}'");
 
         if (double.IsNaN(itemSize))
         {
@@ -90,10 +96,12 @@ public class VirtualizingStackLayout : VirtualizingLayout
         var firstRealizedIndex = Math.Max((int)(itemOffsetStart / (itemSize + Spacing)) - 1, 0);
         var lastRealizedIndex = Math.Min((int)(itemOffsetEnd / (itemSize + Spacing)) + 1, context.ItemCount);
 
+        state.IsInfinity = double.IsInfinity(desiredItemSize);
+
+        var finalDesiredItemSize = 0.0;
+
         state.RealizedRectangles.Clear();
         state.FirstRealizedIndex = firstRealizedIndex;
-
-        var desiredItemSize = isVertical ? availableSize.Width : availableSize.Height;
 
         for (var index = firstRealizedIndex; index < lastRealizedIndex; index++)
         {
@@ -110,9 +118,19 @@ public class VirtualizingStackLayout : VirtualizingLayout
                 width, 
                 height);
             state.RealizedRectangles.Add(rect);
+
+            if (state.IsInfinity)
+            {
+                finalDesiredItemSize = Math.Max(0, isVertical ? element.DesiredSize.Width : element.DesiredSize.Height);
+            }
         }
 
         var extentSize = (context.ItemCount - 1) * (itemSize + Spacing) + itemSize;
+
+        if (state.IsInfinity)
+        {
+            desiredItemSize = finalDesiredItemSize;
+        }
 
         return new Size(
             isVertical ? desiredItemSize : extentSize, 
@@ -123,11 +141,13 @@ public class VirtualizingStackLayout : VirtualizingLayout
     {
         var state = (VirtualizingStackLayoutState)context.LayoutState!;
         var currentIndex = state.FirstRealizedIndex;
+        var isVertical = Orientation == Orientation.Vertical;
+        var desiredItemSize = isVertical ? finalSize.Width : finalSize.Height;
 
         foreach (var rect in state.RealizedRectangles)
         {
             var element = context.GetOrCreateElementAt(currentIndex);
-            element.Arrange(rect);
+            element.Arrange(state.IsInfinity ? rect.WithWidth(desiredItemSize) : rect);
             currentIndex++;
         }
 
