@@ -9,45 +9,45 @@ namespace TestPanel.Layouts
     {
         public int FirstRealizedIndex { get; set; }
 
-        public List<Rect> LayoutRectangleList { get; } = new();
+        public List<Rect> RealizedRectangles { get; } = new();
     }
 
     public class CustomVirtualizingLayout : VirtualizingLayout
     {
-        public static readonly StyledProperty<double> RowSpacingProperty =
-            AvaloniaProperty.Register<CustomVirtualizingLayout, double>(nameof(RowSpacing));
+        public static readonly StyledProperty<double> SpacingProperty =
+            AvaloniaProperty.Register<CustomVirtualizingLayout, double>(nameof(Spacing));
 
-        public static readonly StyledProperty<double> ColumnSpacingProperty =
-            AvaloniaProperty.Register<CustomVirtualizingLayout, double>(nameof(ColumnSpacing));
+        public static readonly StyledProperty<Orientation> OrientationProperty =
+            AvaloniaProperty.Register<CustomVirtualizingLayout, Orientation>(nameof(Orientation), Orientation.Vertical);
+        
+        public static readonly StyledProperty<double> ItemSizeProperty =
+            AvaloniaProperty.Register<CustomVirtualizingLayout, double>(nameof(ItemSize), double.NaN);
 
-        public static readonly StyledProperty<Size> MinimumItemSizeProperty =
-            AvaloniaProperty.Register<CustomVirtualizingLayout, Size>(nameof(MinimumItemSize), Size.Empty);
-
-        public double RowSpacing
+        public double Spacing
         {
-            get => GetValue(RowSpacingProperty);
-            set => SetValue(RowSpacingProperty, value);
+            get => GetValue(SpacingProperty);
+            set => SetValue(SpacingProperty, value);
         }
 
-        public double ColumnSpacing
+        public Orientation Orientation
         {
-            get => GetValue(ColumnSpacingProperty);
-            set => SetValue(ColumnSpacingProperty, value);
+            get => GetValue(OrientationProperty);
+            set => SetValue(OrientationProperty, value);
         }
 
-        public Size MinimumItemSize
+        public double ItemSize
         {
-            get => GetValue(MinimumItemSizeProperty);
-            set => SetValue(MinimumItemSizeProperty, value);
+            get => GetValue(ItemSizeProperty);
+            set => SetValue(ItemSizeProperty, value);
         }
 
         protected override void OnPropertyChanged<T>(AvaloniaPropertyChangedEventArgs<T> change)
         {
             base.OnPropertyChanged(change);
 
-            if (change.Property == RowSpacingProperty
-                || change.Property == ColumnSpacingProperty
-                || change.Property == MinimumItemSizeProperty)
+            if (change.Property == SpacingProperty 
+                || change.Property == OrientationProperty
+                || change.Property == ItemSizeProperty)
             {
                 InvalidateMeasure();
             }
@@ -73,53 +73,50 @@ namespace TestPanel.Layouts
         protected override Size MeasureOverride(VirtualizingLayoutContext context, Size availableSize)
         {
             var state = (CustomVirtualizingLayoutState)context.LayoutState!;
+            var itemSize = ItemSize;
+            var isVertical = Orientation == Orientation.Vertical;
 
-            if (MinimumItemSize == Size.Empty)
+            if (double.IsNaN(itemSize))
             {
-                var firstElement = context.GetOrCreateElementAt(0);
+                var element = context.GetOrCreateElementAt(0);
+                element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
 
-                firstElement.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-
-                MinimumItemSize = firstElement.DesiredSize;
+                itemSize = isVertical ? element.DesiredSize.Height : element.DesiredSize.Width;
+                ItemSize = itemSize;
             }
 
-            var firstRowIndex = Math.Max((int)(context.RealizationRect.Y / (MinimumItemSize.Height + RowSpacing)) - 1, 0);
-            var lastRowIndex = Math.Min((int)(context.RealizationRect.Bottom / (MinimumItemSize.Height + RowSpacing)) + 1, context.ItemCount / 3);
+            var itemOffsetStart = isVertical ? context.RealizationRect.Y : context.RealizationRect.X;
+            var itemOffsetEnd = isVertical ? context.RealizationRect.Bottom : context.RealizationRect.Right;
+            var firstRealizedIndex = Math.Max((int)(itemOffsetStart / (itemSize + Spacing)) - 1, 0);
+            var lastRealizedIndex = Math.Min((int)(itemOffsetEnd / (itemSize + Spacing)) + 1, context.ItemCount);
 
-            state.LayoutRectangleList.Clear();
+            state.RealizedRectangles.Clear();
+            state.FirstRealizedIndex = firstRealizedIndex;
 
-            state.FirstRealizedIndex = firstRowIndex * 3;
+            var desiredItemSize = isVertical ? availableSize.Width : availableSize.Height;
 
-            var desiredItemWidth = Math.Max(MinimumItemSize.Width, (availableSize.Width - ColumnSpacing * 3) / 4);
-
-            for (var rowIndex = firstRowIndex; rowIndex < lastRowIndex; rowIndex++)
+            for (var index = firstRealizedIndex; index < lastRealizedIndex; index++)
             {
-                var firstItemIndex = rowIndex * 3;
+                var width = isVertical ? desiredItemSize : itemSize;
+                var height = isVertical ? itemSize : desiredItemSize;
 
-                var currentRowRectangleArray = CalculateLayoutRectangleArrayForRow(rowIndex, desiredItemWidth);
+                var element = context.GetOrCreateElementAt(index);
+                element.Measure(new Size(width, height));
 
-                for (var columnIndex = 0; columnIndex < 3; columnIndex++)
-                {
-                    var index = firstItemIndex + columnIndex;
-                    var currentRowRectangle = currentRowRectangleArray[index % 3];
-                    var containerElement = context.GetOrCreateElementAt(index);
-
-                    containerElement.Measure
-                    (
-                        new Size
-                        (
-                            currentRowRectangleArray[columnIndex].Width,
-                            currentRowRectangleArray[columnIndex].Height
-                        )
-                    );
-
-                    state.LayoutRectangleList.Add(currentRowRectangleArray[columnIndex]);
-                }
+                var offset = index * (itemSize + Spacing);
+                var rect = new Rect(
+                    isVertical ? 0.0 : offset,
+                    isVertical ? offset : 0.0, 
+                    width, 
+                    height);
+                state.RealizedRectangles.Add(rect);
             }
 
-            var extentHeight = (context.ItemCount / 3 - 1) * (MinimumItemSize.Height + RowSpacing) + MinimumItemSize.Height;
+            var extentSize = (context.ItemCount - 1) * (itemSize + Spacing) + itemSize;
 
-            return new Size(desiredItemWidth * 4 + ColumnSpacing * 2, extentHeight);
+            return new Size(
+                isVertical ? desiredItemSize : extentSize, 
+                isVertical ? extentSize : desiredItemSize);
         }
 
         protected override Size ArrangeOverride(VirtualizingLayoutContext context, Size finalSize)
@@ -127,55 +124,14 @@ namespace TestPanel.Layouts
             var state = (CustomVirtualizingLayoutState)context.LayoutState!;
             var currentIndex = state.FirstRealizedIndex;
 
-            foreach (var layoutRectangle in state.LayoutRectangleList)
+            foreach (var rect in state.RealizedRectangles)
             {
-                var containerElement = context.GetOrCreateElementAt(currentIndex);
-
-                containerElement.Arrange(layoutRectangle);
-
+                var element = context.GetOrCreateElementAt(currentIndex);
+                element.Arrange(rect);
                 currentIndex++;
             }
 
             return finalSize;
-        }
-
-        private Rect[] CalculateLayoutRectangleArrayForRow(int rowIndex, double desiredItemWidth)
-        {
-            var rectangleArrayForRow = new Rect[3];
-            var yOffset = rowIndex * (MinimumItemSize.Height + RowSpacing);
-
-            rectangleArrayForRow[0] = rectangleArrayForRow[0].WithY(yOffset);
-            rectangleArrayForRow[1] = rectangleArrayForRow[1].WithY(yOffset);
-            rectangleArrayForRow[2] = rectangleArrayForRow[2].WithY(yOffset);
-
-            rectangleArrayForRow[0] = rectangleArrayForRow[0].WithHeight(MinimumItemSize.Height);
-            rectangleArrayForRow[1] = rectangleArrayForRow[1].WithHeight(MinimumItemSize.Height);
-            rectangleArrayForRow[2] = rectangleArrayForRow[2].WithHeight(MinimumItemSize.Height);
-
-            if (rowIndex % 2 == 0)
-            {
-                rectangleArrayForRow[0] = rectangleArrayForRow[0].WithX(0);
-                rectangleArrayForRow[0] = rectangleArrayForRow[0].WithWidth(desiredItemWidth);
-
-                rectangleArrayForRow[1] = rectangleArrayForRow[1].WithX(rectangleArrayForRow[0].Right + ColumnSpacing);
-                rectangleArrayForRow[1] = rectangleArrayForRow[1].WithWidth(desiredItemWidth);
-
-                rectangleArrayForRow[2] = rectangleArrayForRow[2].WithX(rectangleArrayForRow[1].Right + ColumnSpacing);
-                rectangleArrayForRow[2] = rectangleArrayForRow[2].WithWidth(desiredItemWidth * 2 + ColumnSpacing);
-            }
-            else
-            {
-                rectangleArrayForRow[0] = rectangleArrayForRow[0].WithX(0);
-                rectangleArrayForRow[0] = rectangleArrayForRow[0].WithWidth((desiredItemWidth * 2 + ColumnSpacing));
-
-                rectangleArrayForRow[1] = rectangleArrayForRow[1].WithX(rectangleArrayForRow[0].Right + ColumnSpacing);
-                rectangleArrayForRow[1] = rectangleArrayForRow[1].WithWidth(desiredItemWidth);
-
-                rectangleArrayForRow[2] = rectangleArrayForRow[2].WithX(rectangleArrayForRow[1].Right + ColumnSpacing);
-                rectangleArrayForRow[2] = rectangleArrayForRow[2].WithWidth(desiredItemWidth);
-            }
-
-            return rectangleArrayForRow;
         }
     }
 }
